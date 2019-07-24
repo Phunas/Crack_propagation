@@ -194,7 +194,7 @@ for i in range(params.nsteps):
         atoms.append(dummy_h)
         r = atoms.get_distances(len(atoms)-1, np.arange(0, len(atoms)-1), mic=True, vector=True)
 	#print(r)
-        
+
 	del atoms[-1]
         r_prime = np.sqrt(r[:,0]**2+r[:,1]**2)
         mask = r_prime < params.quantum_region_size
@@ -204,8 +204,9 @@ for i in range(params.nsteps):
         print('QM atoms', mask.sum())
         atoms.arrays["qm_region"] = mask.astype(int)
 
-        
-    qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width, hydrogenate=False)
+
+    qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width,
+                     hydrogenate=True, save_clusters=True)
     atoms.set_calculator(qmmm)
     atoms.set_pbc([False, False, True])
     if qmmm.qm_buffer_mask is None:
@@ -219,7 +220,7 @@ for i in range(params.nsteps):
     #atoms.arrays["buffer_region"] = qmmm.qm_buffer_mask.astype(int)
 
     # ****** Apply initial strain ramp *****
-    
+
     #if i == 1:
     #    atoms.positions[:, 1] *= ((1.0 + G_to_strain(9.0,  E, nu, orig_height)) / (1 + strain))
 
@@ -250,7 +251,11 @@ for i in range(params.nsteps):
         print('Relaxing slab...')
         #opt = LBFGSLineSearch(atoms)
         #opt.run(fmax=diamond_thinstrip_crack_params.relax_fmax_first)
+<<<<<<< HEAD
         qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width, hydrogenate=True)
+=======
+        #qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width, hydrogenate=False)
+>>>>>>> d6a247be5781412b5476474da94ddebc92f11cc4
         atoms.set_calculator(qmmm)
         opt = FIRE(atoms)
         opt.attach(write_frame)
@@ -269,4 +274,3 @@ for i in range(params.nsteps):
     #ase.io.write(traj, atoms_copy, format="xyz")
 
 #traj.close()
-
