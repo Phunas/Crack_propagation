@@ -251,11 +251,11 @@ for i in range(params.nsteps):
         print('Relaxing slab...')
         #opt = LBFGSLineSearch(atoms)
         #opt.run(fmax=diamond_thinstrip_crack_params.relax_fmax_first)
-<<<<<<< HEAD
-        qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width, hydrogenate=True)
-=======
+
+
+
         #qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width, hydrogenate=False)
->>>>>>> d6a247be5781412b5476474da94ddebc92f11cc4
+
         atoms.set_calculator(qmmm)
         opt = FIRE(atoms)
         opt.attach(write_frame)
