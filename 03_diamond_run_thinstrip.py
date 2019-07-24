@@ -94,7 +94,7 @@ strain_atoms = ConstantStrainRate(orig_height,
 atoms.set_constraint(fix_atoms)
 atoms.set_calculator(params.mm_unscaled)
 
-crack_origin = np.ndarray.tolist(find_tip_broken_bonds(atoms, 2.0))
+crack_origin = np.ndarray.tolist(find_tip_broken_bonds(atoms, 2.35, 4))
 #r = at0.get_distances(0, np.arange(1, len(at0)), mic=True)
 atoms.set_calculator(params.mm)
 
@@ -126,7 +126,7 @@ State      step number    Temp/K     Strain      G/(J/m^2)  CrackPos/A D(CrackPo
     atoms.info['G'] = get_energy_release_rate(atoms)/(units.J/units.m**2)
 
     atoms.set_calculator(param.mm_unscaled)
-    crack_pos = find_tip_broken_bonds(atoms, 2.0)
+    crack_pos = find_tip_broken_bonds(atoms, 2.35, 4)
     atoms.set_calculator(param.mm)
     atoms.info['crack_pos_x'] = crack_pos[0]
     atoms.info['d_crack_pos_x'] = crack_pos[0] - orig_crack_pos[0]
@@ -139,7 +139,7 @@ dynamics.attach(printstatus)
 # Check if the crack has advanced enough and apply strain if it has not
 def check_if_crack_advanced(atoms):
     atoms.set_calculator(params.mm_unscaled)
-    crack_pos = find_tip_broken_bonds(atoms, 2.0)
+    crack_pos = find_tip_broken_bonds(atoms, 2.35, 4)
     atoms.set_calculator(params.mm)
 
     # strain if crack has not advanced more than tip_move_tol
@@ -259,11 +259,11 @@ for i in range(params.nsteps):
         atoms.set_calculator(qmmm)
         opt = FIRE(atoms)
         opt.attach(write_frame)
-        opt.run(fmax=params.relax_fmax, steps = 10)
+        opt.run(fmax=params.relax_fmax, steps = params.max_step_num)
         #ase.io.write(all_opt_traj, atoms, format="xyz")
     #atoms_0 = atoms.copy()
     #atoms_0.set_calculator(params.mm)
-    crack_pos = find_tip_broken_bonds(atoms, 2.0)
+    crack_pos = find_tip_broken_bonds(atoms, 2.35, 4.0)
     if crack_pos[0] - orig_crack_pos[0] > 3:
         print('finished')
         break

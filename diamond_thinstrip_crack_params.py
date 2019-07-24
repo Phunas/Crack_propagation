@@ -53,21 +53,22 @@ relax_fmax = 0.01*units.eV/units.Ang # Maximum force criteria for relaxation
 
 sim_T = 300.0*units.kB           # Simulation temperature
 nsteps = 1                       # Total number of timesteps to run for
+max_step_num = 1		 # Max number of iteration
 timestep = 1.0*units.fs          # Timestep (NB: time base units are not fs!)
 cutoff_skin = 2.0*units.Ang      # Amount by which potential cutoff is increased
                                  # for neighbour calculations
 tip_move_tol = 10.0              # Distance tip has to move before crack
                                  # is taken to be running
-strain_rate = 1e-3#*(1/units.fs)  # Strain rate
+strain_rate = 2e-3#*(1/units.fs)  # Strain rate
 traj_file = 'traj.nc'            # Trajectory output file (NetCDF format)
 traj_interval = 10               # Number of time steps between
                                  # writing output frames
 
 # ******** Multiscale parameters *********
 
-buffer_width = 3.0*units.Ang
+buffer_width = 6.0*units.Ang
 
-quantum_region_size = 3.0*units.Ang
+quantum_region_size = 5.0*units.Ang
 
 # ********** Setup calculator ************
 
