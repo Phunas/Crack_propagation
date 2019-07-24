@@ -2,7 +2,7 @@ from atomistica import TightBinding
 from ase.lattice import bulk
 import ase.units as units
 import ase.build
-from hotbit import Hotbit
+#from hotbit import Hotbit
 from qmmm import RescaledCalculator
 
 # ********** Bulk unit cell ************
