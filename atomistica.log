@@ -11,45 +11,7 @@ Welcome to - Atomistica -
    compiler version:     
    compile options:      
 
-   run date:             Jul 23 2019 12:47:23
-
-- tersoff -
-     el(1)  = C
-     el(2)  = Si
-     A      =   0.13935999999999999E+04  0.15973111406360376E+04  0.18308000000000000E+04
-     B      =   0.34674000000000001E+03  0.40419915041969102E+03  0.47118000000000001E+03
-     xi     =   0.10000000000000000E+01  0.97760000000000002E+00  0.10000000000000000E+01
-     lambda =   0.34878999999999998E+01  0.29839000000000002E+01  0.24799000000000002E+01
-     mu     =   0.22119000000000000E+01  0.19720499999999999E+01  0.17322000000000000E+01
-     omega  =   0.10000000000000000E+01  0.10000000000000000E+01  0.10000000000000000E+01
-     mubo   =   0.00000000000000000E+00  0.00000000000000000E+00  0.00000000000000000E+00
-     m      = 1 1 1
-     beta   =   0.15724000000000000E-06  0.11000000000000001E-05
-     n      =   0.72750999999999999E+00  0.78734000000000004E+00
-     c      =   0.38049000000000000E+05  0.10039000000000000E+06
-     d      =   0.43483999999999998E+01  0.16216999999999999E+02
-     h      =  -0.57057999999999998E+00 -0.59824999999999995E+00
-     r1     =   0.18000000000000000E+01  0.22045407685048604E+01  0.27000000000000002E+01
-     r2     =   0.21000000000000001E+01  0.25099800796022267E+01  0.30000000000000000E+01
-
-- tersoff -
-     el(1)  = C
-     el(2)  = Si
-     A      =   0.13935999999999999E+04  0.15973111406360376E+04  0.18308000000000000E+04
-     B      =   0.34674000000000001E+03  0.40419915041969102E+03  0.47118000000000001E+03
-     xi     =   0.10000000000000000E+01  0.97760000000000002E+00  0.10000000000000000E+01
-     lambda =   0.34878999999999998E+01  0.29839000000000002E+01  0.24799000000000002E+01
-     mu     =   0.22119000000000000E+01  0.19720499999999999E+01  0.17322000000000000E+01
-     omega  =   0.10000000000000000E+01  0.10000000000000000E+01  0.10000000000000000E+01
-     mubo   =   0.00000000000000000E+00  0.00000000000000000E+00  0.00000000000000000E+00
-     m      = 1 1 1
-     beta   =   0.15724000000000000E-06  0.11000000000000001E-05
-     n      =   0.72750999999999999E+00  0.78734000000000004E+00
-     c      =   0.38049000000000000E+05  0.10039000000000000E+06
-     d      =   0.43483999999999998E+01  0.16216999999999999E+02
-     h      =  -0.57057999999999998E+00 -0.59824999999999995E+00
-     r1     =   0.18000000000000000E+01  0.22045407685048604E+01  0.27000000000000002E+01
-     r2     =   0.21000000000000001E+01  0.25099800796022267E+01  0.30000000000000000E+01
+   run date:             Jul 23 2019 16:39:57
 
 - materials_read_database -
      Looking for tables in directory './pbc-0-3'.
@@ -126,91 +88,11 @@ Welcome to - Atomistica -
 - dense_solver_lapack_init -
      Using divide-and-conquer driver
 
- - particles_update_elements -
-     1 elements found.
-     1 = H  (  6528 atoms found)
 
- - particles_update_elements -
-     1 elements found.
-     1 = C  (  6528 atoms found)
-
-- neighbors_request_interaction_range -
-     old interaction range  = .00000000000000000
-     request                = 2.10000000000000009
-
-- neighbors_update -
-     Initializing neighbor list.
-     interaction_range  =         2.1000000000
-     verlet_shell       =         0.0000000000
-     cutoff             =         2.1000000000
-     avgn               =        100
-     Memory estimate: 20.02149963378906250 MB
-
-- neighbors_binning_init -
-     Binning enabled.
-     cutoff     =      2.100
-     box_size   = (    187.790    87.903     5.043 )
-     n_cells    = (         89        41         3 )
-     cell_size  = (      2.110     0.000     0.000     0.000     2.144     0.000     0.000     0.000     1.681 )
-
-- tersoff -
-     (Re)allocating internal neighbor list buffers.
-     nebavg   = 4
-     nebmax   = 4
-     nebsize  = 26113
-     Memory estimate: 1.99226379394531250 MB
-
- - particles_update_elements -
-     1 elements found.
-     1 = H  (    70 atoms found)
-
- - particles_update_elements -
-     1 elements found.
-     1 = C  (    70 atoms found)
-
-- dense_notb_bind_to -
-     The tight-binding module has been compiled for real arithmetics.
-- neighbors_request_interaction_range -
-     old interaction range  = .00000000000000000
-     request                = 5.48227629963999963
-
-- neighbors_update -
-     Initializing neighbor list.
-     interaction_range  =         5.4822762996
-     verlet_shell       =         0.0000000000
-     cutoff             =         5.4822762996
-     avgn               =       1000
-     Memory estimate: 2.13731384277343750 MB
-
-- neighbors_binning_init -
-     Binning enabled.
-     cutoff     =      5.482
-     box_size   = (     22.225    22.225     5.037 )
-     n_cells    = (          4         4         3 )
-     cell_size  = (      5.556     0.000     0.000     0.000     5.556     0.000     0.000     0.000     1.679 )
-
-
-   simulation started:  Jul 23 2019 12:47:23
-   simulation ended:    Jul 23 2019 12:48:39
+   simulation started:  Jul 23 2019 16:39:57
+   simulation ended:    Jul 23 2019 16:48:35
 
 ====> TIMINGS <====
                                                                    time[s]     calls
                                                                    -------     -----
- MDCORE                                                             75.905         1
-   - tersoff_force                                                  58.220       300
-       - fill_neighbor_list                                         52.267       102
-       - ** remainder **                                             5.953
-   - dense_hamiltonian_update_orbitals                               0.001         1
-   - dense_notb_energy_and_forces                                    4.064       100
-       - fill_neighbor_list                                          0.105       100
-       - dense_hamiltonian_update_orbitals                           0.017       100
-       - hs_setup                                                    0.161       100
-       - solver_lapack_diag                                          3.127       100
-           - LAPACK dsygvd                                           2.954       100
-           - occupy                                                  0.017       100
-           - construct_density_and_energy_matrix                     0.147       100
-           - ** remainder **                                         0.009
-       - forces                                                      0.633       100
-       - solver_lapack_e_bs                                          0.008       100
-       - ** remainder **                                             0.013
-   - ** remainder **                                                13.620
+ MDCORE                                                            517.848         1

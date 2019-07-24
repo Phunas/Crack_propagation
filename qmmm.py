@@ -798,7 +798,8 @@ class ForceQMMM(Calculator):
 
                 H_atoms = Atoms([Atom('H', X) for (I, J, X) in cut_bonds])
                 print('Carving cluster with', mask.sum(), 'atoms', len(cut_bonds), 'cut bonds and ', len(H_atoms), 'hydrogen atoms')
-                cluster = atoms[mask] + H_atoms
+                print('atoms[mask]', atoms[mask])
+		cluster = atoms[mask] + H_atoms
 
                 N_cluster = mask.sum()
                 ci, cj = neighbour_list("ij", cluster, self.r_HH_min)
