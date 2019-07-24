@@ -13,9 +13,6 @@ from ase.geometry import get_distances
 
 import scipy
 
-DEBUG = 1
-
-
 class SimpleQMMM(Calculator):
     """Simple QMMM calculator."""
 
@@ -646,7 +643,8 @@ class ForceQMMM(Calculator):
                  zero_mean=True,
                  hydrogenate=False,
                  cutoff=2.0,
-                 r_HH_min=1.0):
+                 r_HH_min=1.0,
+                 save_clusters=False):
         """
         ForceQMMM calculator
 
@@ -670,6 +668,8 @@ class ForceQMMM(Calculator):
             Cutoff radius to use for cluster carving and hydrogen termination
         r_HH_min: float
             Minimum distance between terminating hydrogen atoms
+        save_clusters : bool
+            If true, write QM clusters to a file "clusters.xyz"
         """
 
         if len(atoms[qm_selection_mask]) == 0:
@@ -684,6 +684,7 @@ class ForceQMMM(Calculator):
         self.hydrogenate = hydrogenate
         self.cutoff = cutoff
         self.r_HH_min = r_HH_min
+        self.save_clusters = save_clusters
 
         self.qm_buffer_mask = None
         self.cell = None
@@ -696,22 +697,15 @@ class ForceQMMM(Calculator):
                              atoms.positions,
                              atoms.cell, atoms.pbc)
 
-        #print(r.shape())
-
         self.qm_buffer_mask = np.zeros(len(atoms), dtype=bool)
         for r_qm in r:
             self.qm_buffer_mask[r_qm < self.buffer_width] = True
 
         R_qm = r[:, self.qm_selection_mask]*0.5 # smaller square distance matrix
-        # get max distances from R_qm and use to set qm_radius
- 	#print('R_qm', R_qm)
-
-	qm_radius = np.amax(R_qm)
+        qm_radius = np.amax(R_qm)
         print('qm_radius', qm_radius)
-	non_pbc_directions = np.logical_not(atoms.pbc)
+        non_pbc_directions = np.logical_not(atoms.pbc)
         self.cell = atoms.cell.copy()
-
-        # TODO compute qm_radius from at.positions[qm_selection_mask]
 
         for i, non_pbc in enumerate(non_pbc_directions):
             if non_pbc:
@@ -777,12 +771,8 @@ class ForceQMMM(Calculator):
         if self.qm_buffer_mask is None:
             self.initialize_qm_buffer_mask(atoms)
 
-        # initialize the object
-        #qm_buffer_atoms = atoms.copy()
-
-        # hydrogenate somewhere around here
         if self.hydrogenate:
-            mask = self.qm_buffer_mask.copy()
+            mask = self.qm_buffer_mask # modify buffer mask in place
             i, j, d, D = neighbour_list("ijdD", atoms, self.cutoff)
 
             def r_Z_H(Z):
@@ -791,35 +781,23 @@ class ForceQMMM(Calculator):
             while True: # FIXME avoid an infinite loop
                 cut_bonds = [(I, J, atoms.positions[I] + r_Z_H(atoms.numbers[I])/d_IJ * D_IJ)
                              for I, J, d_IJ, D_IJ in zip(i, j, d, D) if mask[I] and not mask[J]]
-                #cut_bonds = []
-                #for I, J, d_IJ, D_IJ in zip(i, j, d, D) :
-                #    if mask[I] and not mask[j]:
-                #        cut_bonds.append(I, J, atoms.positions[I] + r_Z_H(atoms.numbers[I])/d_IJ * D_I)
-
                 H_atoms = Atoms([Atom('H', X) for (I, J, X) in cut_bonds])
-                print('Carving cluster with', mask.sum(), 'atoms', len(cut_bonds), 'cut bonds and ', len(H_atoms), 'hydrogen atoms')
+                print('Carving cluster with', mask.sum(), 'atoms', len(cut_bonds),
+                      'cut bonds and ', len(H_atoms), 'hydrogen atoms')
                 cluster = atoms[mask] + H_atoms
-
-                # save indices of QM core atoms within the modified cluster
-                cluster_qm_idx = self.qm_selection_mask[mask].nonzero()[0]
 
                 N_cluster = mask.sum()
                 ci, cj = neighbour_list("ij", cluster, self.r_HH_min)
                 clash = [ min(I, J)-N_cluster for I, J in zip (ci, cj)
                           if I < J and I >= N_cluster and J >= N_cluster ]
 
-
-		if clash:
+                if clash:
                     print('Adding atoms to fix', len(clash), 'clashes')
                     mask[[cut_bonds[I][1] for I in clash]] = True
-
                 else:
-
                     break
         else:
             cluster = atoms[self.qm_buffer_mask]
-            # save indices of QM core atoms within the cluster
-            cluster_qm_idx = self.qm_selection_mask[self.qm_buffer_mask].nonzero()[0]
 
         del cluster.constraints
 
@@ -833,14 +811,14 @@ class ForceQMMM(Calculator):
 
         print("Computing MM forces")
         forces = self.mm_calc.get_forces(atoms)
-        if DEBUG:
+        if self.save_clusters:
             cluster.write("clusters.xyz", append=True)
         print("Computing QM forces on cluster containing {0} atoms".format(len(cluster)))
         cluster.set_calculator(self.qm_calc)
         qm_forces = self.qm_calc.get_forces(cluster)
-        # indices of QM core atoms within full Atoms object
-        qm_idx = self.qm_selection_mask.nonzero()[0]
-        forces[qm_idx] = qm_forces[cluster_qm_idx]
+        qm_forces = qm_forces[0:self.qm_buffer_mask.sum()]
+        cluster_qm_mask = self.qm_selection_mask[self.qm_buffer_mask]
+        forces[self.qm_selection_mask] = qm_forces[cluster_qm_mask]
 
         if self.zero_mean:
             # Target is that: forces.sum(axis=1) == [0., 0., 0.]

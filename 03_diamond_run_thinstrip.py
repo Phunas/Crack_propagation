@@ -206,7 +206,7 @@ for i in range(params.nsteps):
 
 
     qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width,
-                     hydrogenate=True)
+                     hydrogenate=True, save_clusters=True)
     atoms.set_calculator(qmmm)
     atoms.set_pbc([False, False, True])
     if qmmm.qm_buffer_mask is None:
