@@ -1,5 +1,3 @@
-
-from __future__ import print_function
 import numpy as np
 
 from ase.calculators.calculator import Calculator
@@ -639,12 +637,15 @@ class ForceQMMM(Calculator):
                  qm_calc,
                  mm_calc,
                  buffer_width,
+                 atom_of_interest,
                  vacuum=5.,
                  zero_mean=True,
                  hydrogenate=False,
                  cutoff=2.0,
                  r_HH_min=1.0,
-                 save_clusters=False):
+                 save_clusters=False,
+                 fixed_buffer=True,
+                 read_in_mask=[]):
         """
         ForceQMMM calculator
 
@@ -670,10 +671,12 @@ class ForceQMMM(Calculator):
             Minimum distance between terminating hydrogen atoms
         save_clusters : bool
             If true, write QM clusters to a file "clusters.xyz"
+        fixed_buffer: bool
+            If true, have a buffer region that will not fluctuate 
         """
 
-        if len(atoms[qm_selection_mask]) == 0:
-            raise ValueError("no QM atoms selected!")
+        #if len(atoms[qm_selection_mask]) == 0:
+        #    raise ValueError("no QM atoms selected!")
 
         self.qm_selection_mask = qm_selection_mask
         self.qm_calc = qm_calc
@@ -685,6 +688,9 @@ class ForceQMMM(Calculator):
         self.cutoff = cutoff
         self.r_HH_min = r_HH_min
         self.save_clusters = save_clusters
+        self.fixed_buffer = fixed_buffer
+        self.atom_of_interest = atom_of_interest
+
 
         self.qm_buffer_mask = None
         self.cell = None
@@ -697,6 +703,8 @@ class ForceQMMM(Calculator):
                              atoms.positions,
                              atoms.cell, atoms.pbc)
 
+        
+
         self.qm_buffer_mask = np.zeros(len(atoms), dtype=bool)
         for r_qm in r:
             self.qm_buffer_mask[r_qm < self.buffer_width] = True
@@ -707,68 +715,25 @@ class ForceQMMM(Calculator):
         non_pbc_directions = np.logical_not(atoms.pbc)
         self.cell = atoms.cell.copy()
 
+        cell_remainder = np.zeros_like(self.cell)
+                
         for i, non_pbc in enumerate(non_pbc_directions):
             if non_pbc:
                 self.cell[i][i] = 2.0 * (qm_radius +
                                          self.buffer_width +
                                          self.vacuum)
+                self.cell[i][i] = np.round((self.cell[i][i])/3)*3 
+		# FIXME - 3 should be a parameter, and avoid fluctuations
+               
 
-    def __initialize_qm_buffer_mask(self, atoms):
-        """
-        Initialises system to perform qm calculation
-        """
 
-        # get the radius of the qm_selection in non periodic directions
-        qm_positions = atoms[self.qm_selection_mask].get_positions()
-        # identify qm radius as an larges distance from the center
-        # of the cluster (overestimation)
-        qm_center = qm_positions.mean(axis=0) # FIXME this can break with pbc
-        print('THIS IS NOT DOING ANYTHING qm_center', qm_center)
-
-        non_pbc_directions = np.logical_not(atoms.pbc)
-
-        centered_positions = atoms.get_positions()
-
-        for i, non_pbc in enumerate(non_pbc_directions):
-            if non_pbc:
-                qm_positions.T[i] -= qm_center[i]
-                centered_positions.T[i] -= qm_center[i]
-
-        qm_radius = np.linalg.norm(qm_positions.T, axis=1).max()
-        #print('qm_radius:', qm_radius)
-        self.cell = atoms.cell.copy()
-
-        for i, non_pbc in enumerate(non_pbc_directions):
-            if non_pbc:
-                self.cell[i][i] = 2.0 * (qm_radius +
-                                         self.buffer_width +
-                                         self.vacuum)
-
-        # identify atoms in region < qm_radius + buffer
-        _, distances_from_center = get_distances([qm_center], atoms.positions,
-                                                 atoms.cell, atoms.pbc)
-        distances_from_center.shape = (-1,)
-        #print('min dist, max dist = ', distances_from_center.min(), distances_from_center.max())
-
-        self.qm_buffer_mask = (distances_from_center <
-                               qm_radius + self.buffer_width)
-        #print('buffer atoms:', len(self.qm_buffer_mask))
-
-        # exclude atoms that are too far (in case of non spherical region)
-        for i, buffer_atom in enumerate(self.qm_buffer_mask &
-                                        np.logical_not(self.qm_selection_mask)):
-            if buffer_atom:
-                distance = np.linalg.norm(
-                    (qm_positions -
-                     centered_positions[i]).T[non_pbc_directions].T, axis=1)
-                if distance.min() > self.buffer_width:
-                    self.qm_buffer_mask[i] = False
-        #print('buffer atoms:', len(self.qm_buffer_mask))
 
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
 
-        if self.qm_buffer_mask is None:
+        #if self.fixed_buffer == True:
+        #    self.qm_buffer_mask = atoms.arrays["buffer_region"]
+        if self.qm_buffer_mask is None:# or self.qm_buffer_mask.all() == False:
             self.initialize_qm_buffer_mask(atoms)
 
         if self.hydrogenate:
@@ -796,6 +761,14 @@ class ForceQMMM(Calculator):
                     print('Adding atoms to fix', len(clash), 'clashes')
                     mask[[cut_bonds[I][1] for I in clash]] = True
                 else:
+                    if (len(H_atoms) % 2) == 0:
+                        H_copy = H_atoms.copy()
+                        print(type(self.atom_of_interest))
+                        _, distance_from_poi = get_distances(H_copy.get_positions(), self.atom_of_interest)
+                        distance_from_poi = distance_from_poi[:,0]**2 +  distance_from_poi[:,1]**2 + distance_from_poi[:,2]**2
+                        furthest_h = np.argmax(distance_from_poi)
+                        print('furthest hydrogen', furthest_h)
+                        del cluster[mask.sum() + furthest_h]
                     break
         else:
             cluster = atoms[self.qm_buffer_mask]
@@ -809,6 +782,8 @@ class ForceQMMM(Calculator):
             del cluster.info['cell_origin']
         cluster.set_cell(self.cell)
         cluster.positions += qm_shift
+
+         
 
         print("Computing MM forces")
         forces = self.mm_calc.get_forces(atoms)
