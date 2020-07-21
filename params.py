@@ -96,7 +96,7 @@ x_radius = 5.0*units.Ang
 offset = [-1.0, 0.0, 0.0]
 # ********** Setup calculator ************
 
-renew_calculator = False
+renew_calculator = True 
 
 # QMMM calculator from ASE, james kermode, and James's rescaled calculator
 from atomistica import Tersoff, TersoffScr, Tersoff_PRB_39_5566_Si_C__Scr, Tersoff_PRB_39_5566_Si_C

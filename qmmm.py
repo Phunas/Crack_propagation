@@ -700,16 +700,19 @@ class ForceQMMM(Calculator):
 
         Calculator.__init__(self)
 
-    def is_compatible(self, atoms, atoms_prev, mask_p, cell_p): #STORE PREVIOUS CELL, CLUSTER AND MASK
-        self.cell = atoms.cell.copy() #THIS IS WRONG
+    def is_compatible(self, atoms, atoms_prev, mask_p): #STORE PREVIOUS CELL, CLUSTER AND MASK
+        cluster = self.get_cluster(atoms)
+        prev_cluster = self.get_cluster(atoms_prev, mask_p)
+        cell = cluster.get_cell()
+        cell_p = prev_cluster.get_cell()
         #WE SHOULD HAVE A 'GET CLUSTER' function, compare clusters
         for j in [0,1,2]:
             for k in [0,1,2]:
-                if (cell_p[j][k] - self.cell[j][k]) > 0.1*units.Ang:
+                if (cell_p[j][k] - cell[j][k]) > 0.1*units.Ang:
                     return True
-        if not np.ndarray.all(mask_p == self.mask):
+        if not np.ndarray.all(mask_p == self.qm_selection_mask):
             return True 
-        elif np.all(atoms_prev.get_positions()  - atoms.get_positions()) > 0.3*units.Ang:
+        elif np.all(cluster.get_positions()  - cluster.get_positions()) > 0.3*units.Ang:
             return True
         else:
             return False
@@ -740,11 +743,21 @@ class ForceQMMM(Calculator):
                                          self.vacuum)
                 self.cell[i][i] = np.round((self.cell[i][i])/3)*3 
 		# FIXME - 3 should be a parameter, and avoid fluctuations
+    def return_qm_buffer_mask(self, atoms):
+        R, r = get_distances(atoms.positions[self.qm_selection_mask],
+                             atoms.positions,
+                             atoms.cell, atoms.pbc)
+        self.qm_buffer_mask = np.zeros(len(atoms), dtype=bool)
+        for r_qm in r:
+            self.qm_buffer_mask[r_qm < self.buffer_width] = True
+        return self.qm_buffer_mask
                
 
-    def get_cluster(self, atoms): 
+    def get_cluster(self, atoms, mask = None): 
         if self.hydrogenate:
-            mask = self.qm_buffer_mask # modify buffer mask in place
+            if mask is None:
+                mask = self.return_qm_buffer_mask(atoms)
+            print('CHECK HERE', mask)
             i, j, d, D = neighbour_list("ijdD", atoms, self.cutoff)
 
             def r_Z_H(Z):
@@ -798,9 +811,9 @@ class ForceQMMM(Calculator):
         #if self.fixed_buffer == True:
         #    self.qm_buffer_mask = atoms.arrays["buffer_region"]
         if self.qm_buffer_mask is None:# or self.qm_buffer_mask.all() == False:
-            self.initialize_qm_buffer_mask(atoms)
+            self.qm_buffer_mask = self.initialize_qm_buffer_mask(atoms)
         #call the get_cluster function 
-        cluster = self.get_cluster(atoms)
+        cluster = self.get_cluster(atoms, self.qm_buffer_mask)
         
         print("Computing MM forces")
         forces = self.mm_calc.get_forces(atoms)

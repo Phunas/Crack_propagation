@@ -63,7 +63,7 @@ relax_slab = True                     # If True, relax notched slab with calcula
 relax_fmax = 0.01*units.eV/units.Ang # Maximum force criteria for relaxation
 
 # ******* Molecular dynamics parameters ***********
-
+MD = 1                           # This tells 
 sim_T = 600.0*units.kB           # Simulation temperature
 nsteps = 80                       # Total number of timesteps to run for
 max_step_num = 1000               # Max number of iteration
