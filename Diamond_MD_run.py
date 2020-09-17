@@ -30,6 +30,8 @@ December 2018
 import sys
 sys.path.insert(0, '.')
 
+from collections import defaultdict
+
 import numpy as np
 
 import ase.io
@@ -39,11 +41,11 @@ from ase.constraints import FixAtoms
 from ase.md.verlet import VelocityVerlet
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase.io.netcdftrajectory import NetCDFTrajectory
-from ase.neighborlist import neighbor_list
+#from ase.neighborlist import neighbor_list
 from ase.optimize import FIRE, MDMin
 from ase.geometry import get_distances
 import ase.build
-
+from matscipy.neighbours import neighbour_list
 
 from qmmm import ForceQMMM, RescaledCalculator
 from crack_matscipy_update import (get_strain,
@@ -56,6 +58,10 @@ from crack_matscipy_update import (get_strain,
 
 import params
 
+
+
+
+## THIS FUNCTION IS TO MOVE ELSEWHERE
 # ********** Force Printing *************
 
 def flush():
@@ -92,7 +98,7 @@ fix_atoms = FixAtoms(mask=fixed_mask)
 print('Fixed %d atoms\n' % fixed_mask.sum())
 
 strain = get_strain(atoms)
-print(strain)
+print('This is the initial strain',strain)
 atoms.set_constraint(fix_atoms)
 
 # Finding the Crack Tip
@@ -105,28 +111,25 @@ print('crack tip: ', crack_origin)
 #strain = G_to_strain(params.initial_G, params.E, params.nu, orig_height)
 
 #These save the frame
-dump = open("crack_run.xyz", "w")
+dump = open("crack_run_thermalizing.xyz", "w")
+
 def write_frame_2(atoms=atoms):
-    ase.io.write("crack_run.xyz", atoms, append=True)
-
-#def write_frame_3(atoms=atoms):
-#    ase.io.write("crack_full_run.nc", atoms, append=True)
-
-#This adds a new array to the atoms object
-#atoms.new_array('qm_region', np.zeros(len(atoms)))
-#atoms.new_array('buffer_region', np.zeros(len(atoms)))
+    ase.io.write("crack_run_thermalizing.xyz", atoms, append=True)
 
 crack_structure = atoms.get_positions()
 cell = atoms.get_cell()
 atoms.set_pbc([False,False,True])
 
-new_strain = G_to_strain(strain_to_G(strain, params.E, params.nu, orig_height) + 8.0*units.J/units.m**2,
+
+
+new_strain = G_to_strain(strain_to_G(strain, params.E, params.nu, orig_height) + 10.0*units.J/units.m**2,
                          params.E, params.nu, orig_height)
 atoms.positions[:, 1] *= ((1.0 + new_strain)/(1 + strain))
-strain = new_strain
-new_strain = strain
 
+print('G', get_energy_release_rate(atoms)/(units.J/units.m**2))
+#print('G',  strain_to_G(strain, params.E, params.nu, orig_height))
 
+##############CREATE THE MASK
 
 which_try=1
 if which_try==1:
@@ -141,33 +144,35 @@ mask = r_prime_elipse < 1
 print('this is the mask')
 print('mask', mask)
 print('QM atoms', mask.sum())
-atoms.arrays["qm_region"] = mask.astype(int)
+atoms.arrays["qm_region"] = mask.astype(bool)
 
-
-qmmm = ForceQMMM(atoms, mask, params.qm_renew, params.mm, buffer_width=params.buffer_width,
+###############################
+# Set the calculator
+qmmm = ForceQMMM(atoms, atoms.arrays["qm_region"], params.qm_renew, params.mm, buffer_width=params.buffer_width,
                      hydrogenate=True, save_clusters=True, fixed_buffer=False, atom_of_interest=crack_origin)
 
 atoms.set_calculator(qmmm)
 if qmmm.qm_buffer_mask is None:
     qmmm.initialize_qm_buffer_mask(atoms)
 
-mask1 = qmmm.qm_buffer_mask
-atoms.arrays["buffer_region"] = mask1.astype(int)
+buffer_mask = qmmm.qm_buffer_mask
+
+
+atoms.arrays["buffer_region"] = buffer_mask.astype(int)
 
 
 # Increase epsilon_yy applied to all atoms at constant strain rate
-
-
 atoms.set_constraint(fix_atoms)
-
 
 crack_origin = np.ndarray.tolist(find_tip_broken_bonds(atoms, 2.25, 4))
 #r = at0.get_distances(0, np.arange(1, len(at0)), mic=True)
 
-atoms.set_calculator(qmmm)
 crack_origin_vec = []
-def update_qm_region():
 
+
+
+def update_qm_region(atoms = atoms):
+    #Set center of qm_region
     which_try=1
     if which_try==1:
         crack_origin = np.ndarray.tolist(find_tip_broken_bonds(atoms, 2.25, 4))
@@ -183,58 +188,49 @@ def update_qm_region():
         crack_origin = np.ndarray.tolist(find_tip_broken_bonds(atoms, 2.25, 4))
         r = ase.geometry.get_distances([crack_origin], [atoms.get_positiions()] ,cell = atoms.get_cell() ,pbc = atoms.get_pbc())
     r_prime_elipse_in = r[:,0]**2/params.x_radius**2 + r[:,1]**2/params.y_radius**2
-    r_prime_elipse_out = r[:,0]**2/(params.x_radius+1)**2 + r[:,1]**2/(params.y_radius+1)**2
- 
+    r_prime_elipse_out = r[:,0]**2/(params.x_radius+0.5)**2 + r[:,1]**2/(params.y_radius+0.5)**2
+    # Save the old mask
     if dynamics.nsteps == 0:
-        mask_p = (r_prime_elipse_in < 1)
-        atoms_prev = atoms.copy()
-    else:
-        mask_p = dynamics.mask.copy()
-        atoms_prev = dynamics.atoms_prev.copy()
-    
-    mask = (r_prime_elipse_in < 1) | (r_prime_elipse_out < 1 & mask_p)
+        dynamics.mask = (r_prime_elipse_in < 1)
+        dynamics.atoms_prev = atoms.copy()
+    #THIS SHOULD BE qmmm.mask, mask p should be dynamics.mask
+    qmmm.qm_selection_mask = (r_prime_elipse_in < 1) | ((r_prime_elipse_out < 1) & dynamics.mask)
+    print('this is the step number', dynamics.nsteps)  
     #
     #atoms.calc.qm = params.qm_reknew or qm
     # even better atoms.calc.qm.params.reuse = True/False
-
-
-    qmmm = ForceQMMM(atoms, mask, params.qm, params.mm, buffer_width=params.buffer_width,
-               hydrogenate=True, save_clusters=True, fixed_buffer=False, atom_of_interest=crack_origin)
+    atoms.arrays["qm_region"] = qmmm.qm_selection_mask
 
 
     if dynamics.nsteps > 0:
         if params.renew_calculator == True:
-            if not qmmm.is_compatible(atoms, atoms_prev, mask_p):
+            if not qmmm.is_compatible(atoms, dynamics.atoms_prev, dynamics.mask):
                 print('default')
-                qmmm.qm_calc.param.reuse = 'default'
+                #qmmm.qm_calc.param.reuse = 'default'
 
     dynamics.atoms_prev = atoms.copy()
-    dynamics.mask = mask.copy()
-
-    print('this is the mask')
-    print('mask', mask)
-    print('QM atoms', mask.sum())
-    qmmm.qm_selection_mask = mask
+    dynamics.mask = atoms.arrays["qm_region"]
     qmmm.initialize_qm_buffer_mask(atoms) 
     dynamics.cell = qmmm.cell
-    print('this is the cell for the qm region maybe', qmmm.cell)
+    tmp_mask = qmmm.qm_buffer_mask
+    atoms.arrays["buffer_region"] = tmp_mask.astype(int)
+    #atoms.set_calculator(qmmm)
+    #print('this function has been called')
 
-    mask1 = qmmm.qm_buffer_mask
-
-    atoms.arrays["qm_region"] = mask.astype(int)
-    atoms.arrays["buffer_region"] = mask1.astype(int)
-    
-    atoms.set_calculator(qmmm)
 
 # ********* Setup and run MD ***********
 
 # Set the initial temperature to 2*simT: it will then equilibriate to
 # simT, by the virial theorem
-#MaxwellBoltzmannDistribution(atoms, 600 * units.kB)
+if params.reset_temp == True:
+    MaxwellBoltzmannDistribution(atoms, 600 * units.kB)
 
 
 # Initialise the dynamical system
 dynamics = VelocityVerlet(atoms, params.timestep)
+
+
+#update_qm_region()
 
 # Print some information every time step
 def printstatus():
@@ -259,7 +255,7 @@ State      Time/fs    Temp/K     Strain      G/(J/m^2)  CrackPos/A D(CrackPos)/A
 
     print(log_format % atoms.info)
 
-dynamics.attach(printstatus)
+#dynamics.attach(printstatus)
 
 # Check if the crack has advanced enough and apply strain if it has not
 def check_if_crack_advanced(atoms):
@@ -276,6 +272,5 @@ dynamics.attach(check_if_crack_advanced, 1, atoms)
 dynamics.attach(flush)
 dynamics.attach(update_qm_region)
 dynamics.attach(write_frame_2)
-
 # Start running!
 dynamics.run(params.nsteps)

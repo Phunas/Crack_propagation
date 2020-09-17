@@ -173,7 +173,7 @@ gamma = ((E_surf - E_per_atom_bulk * len(surface)) /
 print('Surface energy of %s surface %.4f J/m^2\n' %
       (params.cleavage_plane, gamma / (units.J / units.m ** 2)))
 
-
+1/0
 # ***** Setup crack slab supercell *****
 
 # Now we will build the full crack slab system,

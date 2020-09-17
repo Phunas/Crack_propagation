@@ -50,7 +50,7 @@ check_rotated_elastic_constants = False
 
 width = 300.0*units.Ang              # Width of crack slab
 height = 100.0*units.Ang              # Height of crack slab
-depth = 1                            # The number of layers in the slab
+depth = 2                            # The number of layers in the slab
 vacuum = 50.0*units.Ang             # Amount of vacuum around slab
 crack_seed_length = 150.0*units.Ang   # Length of seed crack
 strain_ramp_length = 10.0*units.Ang  # Distance over which strain is ramped up
@@ -65,7 +65,8 @@ relax_fmax = 0.01*units.eV/units.Ang # Maximum force criteria for relaxation
 # ******* Molecular dynamics parameters ***********
 
 sim_T = 600.0*units.kB           # Simulation temperature
-nsteps = 180                       # Total number of timesteps to run for
+reset_temp = True
+nsteps = 120                       # Total number of timesteps to run for
 max_step_num = 1000               # Max number of iteration
 timestep = 1.0*units.fs          # Timestep (NB: time base units are not fs!)
 cutoff_skin = 2.0*units.Ang      # Amount by which potential cutoff is increased
@@ -76,9 +77,10 @@ strain_rate = G_to_strain(0.1, E, nu, height)
 
 
 # ********* Defect parameters ************ 
-defect = False
-vacancy = False
-
+defect = False 
+vacancy = False 
+defect_number = 7
+defect_location = 14418
 
 #*********** Writing parameters ***************
 traj_interval = 1
@@ -90,6 +92,8 @@ buffer_width = 7.0*units.Ang
 y_radius = 5.5*units.Ang
 x_radius = 5.0*units.Ang
 
+#WIP DO NOT SET TRUE YET
+mend_hexagons = False
 # This is an offset for the center of the crack propagation,
 # as the center is defined as the first broken bond, which is no quite what we want.
 

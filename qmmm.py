@@ -1,3 +1,6 @@
+import traceback
+import sys
+
 import numpy as np
 
 import ase.units as units
@@ -670,7 +673,7 @@ class ForceQMMM(Calculator):
             Cutoff radius to use for cluster carving and hydrogen termination
         r_HH_min: float
             Minimum distance between terminating hydrogen atoms
-        save_clusters : bool
+        election_maskave_clusters : bool
             If true, write QM clusters to a file "clusters.xyz"
         fixed_buffer: bool
             If true, have a buffer region that will not fluctuate 
@@ -691,7 +694,6 @@ class ForceQMMM(Calculator):
         self.save_clusters = save_clusters
         self.fixed_buffer = fixed_buffer
         self.atom_of_interest = atom_of_interest
-        self.mask = qm_selection_mask
 
         self.atoms = atoms 
         self.qm_buffer_mask = None
@@ -705,6 +707,8 @@ class ForceQMMM(Calculator):
         prev_cluster = self.get_cluster(atoms_prev, mask_p)
         cell = cluster.get_cell()
         cell_p = prev_cluster.get_cell()
+        # self.atoms
+        #
         #WE SHOULD HAVE A 'GET CLUSTER' function, compare clusters
         for j in [0,1,2]:
             for k in [0,1,2]:
@@ -806,6 +810,7 @@ class ForceQMMM(Calculator):
         return cluster
 
     def calculate(self, atoms, properties, system_changes):
+        #traceback.print_stack(file=sys.stdout)
         Calculator.calculate(self, atoms, properties, system_changes)
 
         #if self.fixed_buffer == True:
@@ -815,8 +820,6 @@ class ForceQMMM(Calculator):
         #call the get_cluster function 
         cluster = self.get_cluster(atoms, self.qm_buffer_mask)
         
-        print("Computing MM forces")
-        forces = self.mm_calc.get_forces(atoms)
         if self.save_clusters:
             cluster.write("clusters.xyz", append=True)
         print("Computing QM forces on cluster containing {0} atoms".format(len(cluster)))
@@ -824,8 +827,12 @@ class ForceQMMM(Calculator):
         qm_forces = self.qm_calc.get_forces(cluster)
         qm_forces = qm_forces[0:self.qm_buffer_mask.sum()]
         cluster_qm_mask = self.qm_selection_mask[self.qm_buffer_mask]
-        forces[self.qm_selection_mask] = qm_forces[cluster_qm_mask]
 
+        print("Computing MM forces")
+        forces = self.mm_calc.get_forces(atoms)
+        
+        forces[self.qm_selection_mask] = qm_forces[cluster_qm_mask]
+        
         if self.zero_mean:
             # Target is that: forces.sum(axis=1) == [0., 0., 0.]
             forces[:] -= forces.mean(axis=0)
