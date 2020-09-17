@@ -1201,7 +1201,7 @@ def find_tip_broken_bonds(atoms, cutoff, bulk_nn=4, boundary_thickness=None):
         Number of nearest neighbours for the standard bulk configuration.
     boundary_buffer : float
         Thickness of the boundaries.
-       Defaults to cutoff distance.
+        Defaults to cutoff distance.
 
     Returns
     -------

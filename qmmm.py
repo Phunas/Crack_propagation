@@ -695,7 +695,7 @@ class ForceQMMM(Calculator):
         self.fixed_buffer = fixed_buffer
         self.atom_of_interest = atom_of_interest
 
-        self.atoms = atoms 
+        self.atoms = atoms
         self.qm_buffer_mask = None
         self.cell = None
         self.qm_shift = None
@@ -715,7 +715,7 @@ class ForceQMMM(Calculator):
                 if (cell_p[j][k] - cell[j][k]) > 0.1*units.Ang:
                     return True
         if not np.ndarray.all(mask_p == self.qm_selection_mask):
-            return True 
+            return True
         elif np.all(cluster.get_positions()  - cluster.get_positions()) > 0.3*units.Ang:
             return True
         else:
@@ -726,7 +726,7 @@ class ForceQMMM(Calculator):
                              atoms.positions,
                              atoms.cell, atoms.pbc)
 
-        
+
 
         self.qm_buffer_mask = np.zeros(len(atoms), dtype=bool)
         for r_qm in r:
@@ -739,14 +739,14 @@ class ForceQMMM(Calculator):
         self.cell = atoms.cell.copy()
 
         cell_remainder = np.zeros_like(self.cell)
-                
+
         for i, non_pbc in enumerate(non_pbc_directions):
             if non_pbc:
                 self.cell[i][i] = 2.0 * (qm_radius +
                                          self.buffer_width +
                                          self.vacuum)
-                self.cell[i][i] = np.round((self.cell[i][i])/3)*3 
-		# FIXME - 3 should be a parameter, and avoid fluctuations
+                self.cell[i][i] = np.round((self.cell[i][i])/3)*3
+                # FIXME - 3 should be a parameter, and avoid fluctuations
     def return_qm_buffer_mask(self, atoms):
         R, r = get_distances(atoms.positions[self.qm_selection_mask],
                              atoms.positions,
@@ -755,9 +755,10 @@ class ForceQMMM(Calculator):
         for r_qm in r:
             self.qm_buffer_mask[r_qm < self.buffer_width] = True
         return self.qm_buffer_mask
-               
 
-    def get_cluster(self, atoms, mask = None): 
+
+
+    def get_cluster(self, atoms, mask = None):
         if self.hydrogenate:
             if mask is None:
                 mask = self.return_qm_buffer_mask(atoms)
@@ -819,7 +820,7 @@ class ForceQMMM(Calculator):
             self.qm_buffer_mask = self.initialize_qm_buffer_mask(atoms)
         #call the get_cluster function 
         cluster = self.get_cluster(atoms, self.qm_buffer_mask)
-        
+
         if self.save_clusters:
             cluster.write("clusters.xyz", append=True)
         print("Computing QM forces on cluster containing {0} atoms".format(len(cluster)))
@@ -830,12 +831,15 @@ class ForceQMMM(Calculator):
 
         print("Computing MM forces")
         forces = self.mm_calc.get_forces(atoms)
-        
+
         forces[self.qm_selection_mask] = qm_forces[cluster_qm_mask]
-        
+
         if self.zero_mean:
             # Target is that: forces.sum(axis=1) == [0., 0., 0.]
             forces[:] -= forces.mean(axis=0)
 
         self.results['forces'] = forces
         self.results['energy'] = 0.0
+
+
+
